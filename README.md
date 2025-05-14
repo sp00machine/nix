@@ -1,5 +1,5 @@
 
-# Trev's Nix Flake
+# Ash's Nix Flake ~~stolen~~ (borrowed from Trev)
 
 To install on NixOS:
 ```sh
