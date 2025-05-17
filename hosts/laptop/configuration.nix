@@ -1,100 +1,170 @@
 # Edit this configuration file to define what should be installed on
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
+
+{ config, pkgs, ... }:
+let
+  home-manager = builtins.fetchTarball "https://github.com/nix-community/home-manager/archive/master.tar.gz";
+in
+
 {
-  config,
-  pkgs,
-  inputs,
-  ...
-}: {
   imports =
-    [
-      inputs.home-manager.nixosModules.home-manager
-      inputs.catppuccin.nixosModules.catppuccin
+    [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-    ]
-    ++ map (x: ./../../modules/nixos/${x}.nix) [
-      # Programs to import
-      "cache"
-      "git"
-      "gnome-auth-agent"
-      "hyprland"
-      "pipewire"
-      "postgres"
-      "sddm"
-      "steam"
-      "syncthing"
-      "tailscale"
-      "update"
-      "updater"
-      "zsh"
+      (import "${home-manager}/nixos")
     ];
 
-  # Packages to install
-  environment.systemPackages = with pkgs; [
-    # GUI
-    nemo
-    nemo-fileroller
-    file-roller
-    vesktop
-    feh
-    obsidian
-    jetbrains.idea-community-bin
-    dbeaver-bin
-    android-studio
-    plexamp
-    thunderbird
-    kdePackages.kdenlive
-    bruno
-    onlyoffice-bin_latest
-    prismlauncher
-    moonlight-qt
-    inputs.trevbar.packages."${system}".default
-    plex-desktop
-
-    # CLI
-    wget
-    unzip
-    fastfetch
-    grimblast
-    android-tools
-    yt-dlp
-    openconnect
-    ncdu
-    nmap
-    btop
-    brightnessctl
-
-    # Applets
-    networkmanagerapplet
-    pavucontrol
-  ];
-
-  # Fonts to install
-  fonts.packages = with pkgs; [
-    meslo-lgs-nf
-    fira-code
-  ];
-
-  # -- SYSTEM CONFIGURATION --
-
-  # Boot loader
+  # Bootloader.
   boot.loader.systemd-boot.enable = true;
-  boot.loader.timeout = 10;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # TTY
-  catppuccin.tty = {
-    enable = true;
-    flavor = "mocha";
+  networking.hostName = "nixos"; # Define your hostname.
+  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
+
+  # Configure network proxy if necessary
+  # networking.proxy.default = "http://user:password@proxy:port/";
+  # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
+
+  # Enable networking
+  networking.networkmanager.enable = true;
+
+  # Set your time zone.
+  time.timeZone = "America/New_York";
+
+  # Select internationalisation properties.
+  i18n.defaultLocale = "en_US.UTF-8";
+
+  i18n.extraLocaleSettings = {
+    LC_ADDRESS = "en_US.UTF-8";
+    LC_IDENTIFICATION = "en_US.UTF-8";
+    LC_MEASUREMENT = "en_US.UTF-8";
+    LC_MONETARY = "en_US.UTF-8";
+    LC_NAME = "en_US.UTF-8";
+    LC_NUMERIC = "en_US.UTF-8";
+    LC_PAPER = "en_US.UTF-8";
+    LC_TELEPHONE = "en_US.UTF-8";
+    LC_TIME = "en_US.UTF-8";
   };
 
-  # Nix settings
-  nix = {
-    settings.experimental-features = ["nix-command" "flakes"];
+  # 16GB swap file
+  swapDevices = [{
+    device = "/swapfile";
+    size = 16 * 1024; # 16GB
+  }];
 
-    extraOptions = ''
-      warn-dirty = false
+  # Enable the X11 windowing system.
+  services.xserver.enable = true;
+
+  # Enable the KDE Plasma Desktop Environment.
+  services.displayManager.sddm.enable = true;
+  services.desktopManager.plasma6.enable = true;
+  # Configure keymap in X11
+  services.xserver.xkb = {
+    layout = "us";
+    variant = "";
+  };
+
+  # Enable CUPS to print documents.
+  services.printing.enable = true;
+
+  # Enable sound with pipewire.
+  services.pulseaudio.enable = false;
+  security.rtkit.enable = true;
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+    # If you want to use JACK applications, uncomment this
+    #jack.enable = true;
+
+    # use the example session manager (no others are packaged yet so this is enabled by default,
+    # no need to redefine it in your config for now)
+    #media-session.enable = true;
+  };
+
+  # Enable touchpad support (enabled default in most desktopManager).
+  # services.xserver.libinput.enable = true;
+
+  # Define a user account. Don't forget to set a password with ‘passwd’.
+  users.users.ash = {
+    isNormalUser = true;
+    description = "Ashley";
+    extraGroups = [ "networkmanager" "wheel" "docker" "dialout" ];
+    packages = with pkgs; [
+      kdePackages.kate
+    #  thunderbird
+    ];
+  };
+
+  # Install teamviewer
+  services.teamviewer.enable = true;
+
+  # Install steam
+  programs.steam.enable = true;
+
+  # Install firefox.
+  #programs.firefox.enable = true;
+  # Install KDE Partition Manager
+  programs.partition-manager.enable = true;
+
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+
+  # List packages installed in system profile. To search, run:
+  # $ nix search wget
+  environment.systemPackages = with pkgs; [
+  #  vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
+  #  wget
+   # vivaldi
+    (vivaldi.overrideAttrs (oldAttrs: { dontWrapQtApps = false; dontPatchELF = true; nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [pkgs.kdePackages.wrapQtAppsHook]; }))
+    chromium
+    vesktop
+    fish
+    vscode
+    arduino-ide
+    libsForQt5.qtcurve
+    libsForQt5.qt5.qtwayland
+    git
+    obs-studio
+    teamviewer
+    cowsay
+    pkgs.mongodb-compass
+    python3
+    python311Packages.flask
+    python311Packages.pymongo
+    python311Packages.bson
+    python311Packages.flask-cors
+    go
+    transmission_4
+    xclip
+];
+
+# Docker
+virtualisation.docker.enable = true;
+
+
+virtualisation.docker.rootless = {
+    enable = true;
+    setSocketVariable = true;
+};
+
+
+# Home manager
+  home-manager.users.ash = {
+    home.stateVersion = "18.09";
+    programs.fish.enable = true;
+  };
+
+
+  # Fish shell
+  programs.bash = {
+    interactiveShellInit = ''
+      if [[ $(${pkgs.procps}/bin/ps --no-header --pid=$PPID --format=comm) != "fish" && -z ''${BASH_EXECUTION_STRING} ]]
+      then
+        shopt -q login_shell && LOGIN_OPTION='--login' || LOGIN_OPTION=""
+        exec ${pkgs.fish}/bin/fish $LOGIN_OPTION
+      fi
     '';
   };
 
@@ -110,69 +180,25 @@
     enable = true;
   };
 
-  # Networking
-  networking.hostName = "nixos-laptop"; # Define your hostname.
-  networking.networkmanager.enable = true;
-  networking.firewall.enable = false;
 
-  # Bluetooth
-  hardware.bluetooth.enable = true;
-  hardware.bluetooth.powerOnBoot = true;
-  services.blueman.enable = true;
+  # Some programs need SUID wrappers, can be configured further or are
+  # started in user sessions.
+  # programs.mtr.enable = true;
+  # programs.gnupg.agent = {
+  #   enable = true;
+  #   enableSSHSupport = true;
+  # };
 
-  # Security
-  security.polkit.enable = true;
+  # List services that you want to enable:
 
-  # Time zone
-  time.timeZone = "America/Detroit";
+  # Enable the OpenSSH daemon.
+  # services.openssh.enable = true;
 
-  # Internationalisation properties
-  i18n.defaultLocale = "en_US.UTF-8";
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "en_US.UTF-8";
-    LC_IDENTIFICATION = "en_US.UTF-8";
-    LC_MEASUREMENT = "en_US.UTF-8";
-    LC_MONETARY = "en_US.UTF-8";
-    LC_NAME = "en_US.UTF-8";
-    LC_NUMERIC = "en_US.UTF-8";
-    LC_PAPER = "en_US.UTF-8";
-    LC_TELEPHONE = "en_US.UTF-8";
-    LC_TIME = "en_US.UTF-8";
-  };
-
-  # Home manager
-  home-manager = {
-    useGlobalPkgs = true;
-    extraSpecialArgs = {inherit inputs;};
-    users = {
-      trev.imports = [./../../users/trev.nix];
-    };
-  };
-
-  # User accounts
-  users.users.trev = {
-    isNormalUser = true;
-    description = "trev";
-    extraGroups = [
-      "networkmanager"
-      "wheel"
-      "docker"
-      "video"
-    ];
-    packages = with pkgs; [];
-    shell = pkgs.zsh;
-  };
-
-  # Docker
-  virtualisation.docker.enable = true;
-
-  # Upower
-  services.upower.enable = true;
-
-  # Allow unfree packages and add overlays
-  nixpkgs = {
-    config.allowUnfree = true;
-  };
+  # Open ports in the firewall.
+  # networking.firewall.allowedTCPPorts = [ ... ];
+  # networking.firewall.allowedUDPPorts = [ ... ];
+  # Or disable the firewall altogether.
+  # networking.firewall.enable = false;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
@@ -181,4 +207,5 @@
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "24.05"; # Did you read the comment?
+
 }
