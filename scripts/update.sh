@@ -71,7 +71,7 @@ fi
 
 if [ "$DELETE" = true ]; then
     gprint "Deleting old generations"
-    nix-collect-garbage --delete-older-than 7d
+    nix-collect-garbage --delete-older-than 2d
 fi
 
 gprint "Finished update"
